@@ -7,6 +7,7 @@ using System.Data.OleDb;
 using System.Windows.Forms;
 using System.Data;
 
+
 namespace TPFinalRodriguez
 {
     internal class clsAccesoBD
@@ -19,63 +20,92 @@ namespace TPFinalRodriguez
         OleDbDataReader Lector;
 
        
-        public clsAccesoBD()
-        {
-            rutaArchivo = @"../../Base de Datos/BrokerSeguros.accdb";
-            CadenaConexion = "Provider = Microsoft.ACE.OLEDB.12.0; Data Source =" + rutaArchivo;
-            estadoConexion = "Cerrado";
-
-            ConectarBD();
-        }
+       
         public void ConectarBD()
         {
-
+            string rutaArchivo = @"../../BD/EMPLEO.accdb";
+            string CadenaConexion = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + rutaArchivo;
+            OleDbConnection conexion = new OleDbConnection(CadenaConexion);
             try
             {
-                Conexion = new OleDbConnection();
-                Conexion.ConnectionString = CadenaConexion;
-                Conexion.Open();
-                estadoConexion = "Abierto";
-               // Comando = new OleDbCommand();
-                //Comando.Connection = Conexion;
-                //Comando.CommandType = System.Data.CommandType.Text;
-                //Comando.CommandText = "";
-                //Lector = Comando.ExecuteReader();
-                //MessageBox.Show("BD");
+                conexion.Open();
             }
-            catch (Exception ex)
+            catch (OleDbException)
             {
-                estadoConexion = ex.Message;
-
+                MessageBox.Show("BD no Conectada");
             }
-
-
+            finally
+            {
+                conexion.Close();
+            }
         }
 
         public void CargaEmpleado(ComboBox cboEmpleado)
         {
-            string CargarCbo = "SELECT DISTINCT CODIGO From DATOS_ACADEMICOS";
-            try
+            string rutaArchivo = @"../../BD/EMPLEO.accdb";
+            string CadenaConexion = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + rutaArchivo;
+            using (OleDbConnection conexion = new OleDbConnection(CadenaConexion))
             {
-                //llamo los objetos conexion y comando para manipular la base de datos 
-                Comando = new OleDbCommand();
-                Comando.Connection = Conexion;
-                Comando.CommandType = CommandType.Text;
-                Comando.CommandText = CargarCbo;
-                //reader para leer los datos que contiene
-                Lector = Comando.ExecuteReader();
-                while (Lector.Read())
-                {
-                    //Agrego la tabla paises al cboLugarNacimiento
-                    cboEmpleado.Items.Add(Lector["Pais"].ToString());
-                }
+                conexion.Open();
 
+                string varSQL = "SELECT CODIGO FROM [DATOS LABORALES] ORDER BY 1 DESC";
+                using (OleDbCommand cmdEmpleado = new OleDbCommand(varSQL, conexion))
+                {
+                    using (OleDbDataReader reader = cmdEmpleado.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            cboEmpleado.Items.Add(reader["CODIGO"].ToString());
+                        }
+                    }
+                }
             }
-            catch (Exception ex)
+        }
+
+        public void LlenarTreeView(string codigo, TreeView Tree)
+        {
+            string rutaArchivo = @"../../BD/EMPLEO.accdb";
+            string CadenaConexion = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + rutaArchivo;
+            using (OleDbConnection conexion = new OleDbConnection(CadenaConexion))
             {
-                MessageBox.Show("Error: " + ex.Message);
+                conexion.Open();
+
+                DataTable schema = conexion.GetOleDbSchemaTable(OleDbSchemaGuid.Tables, new object[] { null, null, null, "TABLE" });
+
+                foreach (DataRow row in schema.Rows)
+                {
+                    string tableName = row["TABLE_NAME"].ToString();
+                    TreeNode tableNode = Tree.Nodes.Add(tableName);
+                    LlenarNodosFiltrados(tableNode, codigo, tableName);
+                }
             }
-           // Lector.Close();
+        }
+        public void LlenarNodosFiltrados(TreeNode parentNode, string codigo, string tableName)
+        {
+            string query = $"SELECT * FROM [{tableName}] WHERE CODIGO = '{codigo}'";
+            string rutaArchivo = @"../../BD/EMPLEO.accdb";
+            string CadenaConexion = "Provider=Microsoft.ACE.OLEDB.12.0;Data Source=" + rutaArchivo;
+            using (OleDbConnection conexion = new OleDbConnection(CadenaConexion))
+            {
+                conexion.Open();
+
+                using (OleDbCommand cmd = new OleDbCommand(query, conexion))
+                {
+                    using (OleDbDataReader reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                string columnName = reader.GetName(i);
+                                string columnValue = reader[i].ToString();
+                                parentNode.Nodes.Add($"{columnName}: {columnValue}");
+                            }
+                        }
+                    }
+                }
+            }
+
         }
     }
 }

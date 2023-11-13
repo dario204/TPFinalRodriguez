@@ -54,5 +54,11 @@ namespace TPFinalRodriguez
 
             //Hora.Text = fechayHoraActual.ToString("yyyy-MM-dd HH:mm:ss");
         }
+
+        private void empleadosToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            frmListado Listado = new frmListado();
+            Listado.ShowDialog();
+        }
     }
 }
